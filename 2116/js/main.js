@@ -46,8 +46,6 @@ function showWishList() {
     });
 }
 
-
-
 // ==============================
 // 찜 버튼 클릭
 // ==============================
@@ -91,81 +89,52 @@ function handler(movie) {
     showWishList();
 }
 
-
-
 // ==============================
 // 영화 목록 가져오기
 // ==============================
+// 1. 페이지 로드 시 AJAX 요청 실행
+window.addEventListener("DOMContentLoaded", function(){
+    showWishList();
 
-fetch("./data/movie.txt")
-    .then(response => response.text())
-    .then(data => {
+    const movieList = document.querySelector(".movie-list");
+    let movieDataList = [];
 
-        const movieList = document.querySelector(".movie-list");
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "./data/movie.json");
+    xhr.send();
 
+    xhr.onreadystatechange = function(){
+        if(xhr.readyState === XMLHttpRequest.DONE){
+            if(xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                movieDataList = response.movies;
 
-        // 영화 단위로 분리
-        const movies = data
-            .trim()
-            .split(/\r?\n\s*\r?\n/);
+                movieDataList.forEach((movie, index) =>{
+                    const li = document.createElement("li");
+                    li.classList.add("movie");
 
+                    li.innerHTML = `
+                        <img src="./${movie.img}" alt="${movie.title}">
+                        <p>${movie.title}</p>
+                        <p>${movie.genre}</p>
+                        <p>${movie.director}</p>
+                        <p>${movie.runningTime}분</p>
+                        <button class="wish-btn" data-index="${index}">찜</button>
+                    `;
 
-        movies.forEach(movie => {
+                    movieList.appendChild(li);
+                });
+            }else{
+                console.error("데이터 불러오기 실패:", xhr.status);
+            }
+        }
+    };
 
-            const lines = movie.split(/\r?\n/);
-
-            const movieData = {};
-
-
-            // 영화 정보를 객체로 변환
-            lines.forEach(line => {
-
-                const [key, ...value] = line.split(":");
-
-                movieData[key.trim()] = value.join(":").trim();
-
-            });
-
-
-            // li 생성
-            const li = document.createElement("li");
-
-            li.classList.add("movie");
-
-
-            li.innerHTML = `
-                <img src="./img/${movieData.img}" alt="${movieData.title}">
-
-                <p>${movieData.title}</p>
-                <p>${movieData.genre}</p>
-                <p>${movieData.director}</p>
-                <p>${movieData.runningTime}분</p>
-
-                <button class="wish-btn">찜</button>
-            `;
-
-
-            // 찜 버튼
-            const button = li.querySelector(".wish-btn");
-
-
-            button.addEventListener("click", function () {
-
-                handler(movieData);
-
-            });
-
-
-            movieList.appendChild(li);
-
-        });
-
+    movieList.addEventListener("click", function(e){
+        if(e.target.classList.contains("wish-btn")){
+            const movieIndex = e.target.dataset.index;
+            const selectedMovie = movieDataList[movieIndex];
+            handler(selectedMovie);
+        }
     });
-
-
-
-// ==============================
-// 페이지 처음 실행할 때 찜리스트 출력
-// ==============================
-
-showWishList();
+});
